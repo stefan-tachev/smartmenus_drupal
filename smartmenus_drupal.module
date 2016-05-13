@@ -1,0 +1,172 @@
+<?php
+
+/**
+ * @file
+ * Enables the use of jQuery SmartMenus plugin for Drupal menus.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function smartmenus_drupal_menu() {
+  $items['admin/config/user-interface/smartmenus_drupal'] = array(
+    'title' => 'SmartMenus',
+    'description' => 'Configure SmartMenus Menus',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('smartmenus_drupal_admin_settings'),
+    'access arguments' => array('administer smartmenus_drupal'),
+    'file' => 'smartmenus_drupal.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function smartmenus_drupal_permission() {
+  return array(
+    'administer smartmenus_drupal' => array(
+      'title' => t('Administer SmartMenus'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_help().
+ */
+function smartmenus_drupal_help($path, $arg) {
+  $output = '';
+  switch ($path) {
+    case 'admin/modules#description':
+      $output .= t('jQuery SmartMenus plugin for your Drupal menus.');
+      break;
+
+    case 'admin/config/user-interface/smartmenus_drupal':
+      $output .= t('<p>Block-specific SmartMenus settings could be found at !link</p>', array('!link' => l(t('Blocks management'), 'admin/structure/block')));
+      break;
+  }
+  return $output;
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function smartmenus_drupal_block_info() {
+  $blocks = array();
+  $number = variable_get('smartmenus_drupal_number', 4);
+  for ($i = 1; $i <= $number; $i++) {
+    $blocks[$i] = array(
+      'info' => variable_get('smartmenus_drupal_name_' . $i, 'SmartMenus ' . $i) . ' (SmartMenus)',
+      'cache' => DRUPAL_NO_CACHE,
+    );
+  }
+  return $blocks;
+}
+
+
+/**
+ * Implements hook_block_configure().
+ */
+function smartmenus_drupal_block_configure($delta = 0) {
+  $form = $menu_default = array();
+
+  // Integration with the Domain Access module.
+  if (module_exists('domain_conf')) {
+    $main = variable_get('menu_main_links_source');
+    $secondary = variable_get('menu_secondary_links_source');
+    if ($main) {
+      $menu_default['domainaccessmenu1st-' . $main . ':0'] = t('Domains Access') . ': ' . t('Main links');
+    }
+    if ($secondary) {
+      $menu_default['domainaccessmenu2nd-' . $secondary . ':0'] = t('Domains Access') . ': ' . t('Secondary links');
+    }
+  }
+  $menu_default += menu_parent_options(menu_get_menus(), array('mlid' => 0));
+
+  $form['smartmenus_drupal_name_' . $delta] = array(
+    '#type' => 'textfield',
+    '#title' => t('Block description'),
+    '#description' => t('A brief description of your block. Used on the !link', array('!link' => l(t('Blocks administration page'), 'admin/structure/block'))),
+    '#default_value' => variable_get('smartmenus_drupal_name_' . $delta, 'SmartMenus ' . $delta),
+  );
+  $form['sf-settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('SmartMenus settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+  $form['sf-settings']['smartmenus_drupal_menu_' . $delta] = array(
+    '#type' => 'select',
+    '#title' => t('Menu'),
+    '#description' => t('The menu you want to be displayed using SmartMenus.') . ' <em>(' . t('Default') . ': &lt;Main menu&gt;)</em>',
+    '#default_value' => variable_get('smartmenus_drupal_menu_' . $delta, 'main-menu:0'),
+    '#options' => $menu_default,
+  );
+  $form['sf-settings']['smartmenus_drupal_type_' . $delta] = array(
+    '#type' => 'radios',
+    '#title' => t('Type'),
+    '#default_value' => variable_get('smartmenus_drupal_type_' . $delta, 'horizontal'),
+    '#options' => array(
+      'horizontal' => t('Horizontal (single row)') . ' <em>(' . t('Default') . ')</em>',
+      'vertical' => t('Vertical (stack)')
+    ),
+  );
+  $form['sf-settings']['smartmenus_drupal_style_' . $delta] = array(
+    '#type' => 'select',
+    '#title' => t('Style'),
+    '#description' => '<em>(' . t('Default') . ': ' . t('None') . ')</em>',
+    '#default_value' => variable_get('smartmenus_drupal_style_' . $delta, 'none'),
+    '#options' => smartmenus_drupal_styles(),
+  );
+  return $form;
+}
+
+
+/**
+ * Helper function to get library paths.
+ */
+function smartmenus_drupal_get_path($library = 'smartmenus') {
+  $directory = '';
+  // Ensure the Libraries API module is installed.
+  if (module_exists('libraries') && function_exists('libraries_get_path')) {
+    $directory = libraries_get_path($library);
+  }
+  // Otherwise use the default directory.
+  elseif (file_exists('profiles/' . drupal_get_profile() . '/libraries/' . $library)) {
+    $directory = 'profiles/' . drupal_get_profile() . '/libraries/' . $library;
+  }
+  if (empty($directory)) {
+    $directory = 'sites/all/libraries/' . $library;
+  }
+  return $directory;
+}
+
+
+
+/**
+ * Get a list of CSS files that can be used for styles.
+ */
+function smartmenus_drupal_styles($display = 'list', $style = NULL) {
+  $output = '';
+  $directory = smartmenus_drupal_get_path('smartmenus') . '/css';
+  $subdirectories = (file_exists($directory)) ? file_scan_directory($directory, '/*/', array('key' => 'name')) : '';
+  if ($display == 'list') {
+    $output = array('none' => '- ' . t('None') . ' -');
+    if (is_array($subdirectories)) {
+      foreach ($subdirectories as $subdirectory) {
+        $output[$subdirectory->name] = drupal_ucfirst($subdirectory->name);
+      }
+    }
+    natcasesort($output);
+  }
+  if ($display == 'path' && $style) {
+    if (isset($subdirectories[$style])) {
+      $output = array($subdirectories[$style]->uri => array('type' => 'file', 'weight' => 500));
+    }
+    else {
+      watchdog('page not found', 'Cannot find the required subdirectories for the SmartMenus \'%style\' style.', array('%style' => $style), WATCHDOG_WARNING);
+      $output = '';
+    }
+  }
+  return $output;
+}

@@ -1,0 +1,114 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the SmartMenus module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function smartmenus_drupal_uninstall() {
+  db_delete('variable')->condition('name', 'smartmenus_drupal_%%', 'LIKE')->execute();
+  db_delete('block')->condition('module', 'smartmenus_drupal')->execute();
+  db_delete('block_role')->condition('module', 'smartmenus_drupal')->execute();
+}
+
+/**
+ * Implements hook_enable().
+ */
+function smartmenus_drupal_enable() {
+  if (smartmenus_drupal_library_check()){
+    drupal_set_message(t('In order to use SmartMenus, go to the <a href="@block">Blocks</a> page and enable a SmartMenus block.', array('@block' => 'structure/block')));
+  } else {
+    drupal_set_message(t('SmartMenus library is missing. Please refer to the <a href="@documentation">plugin documentation</a> for how you can fix this issue; Once done, go to the <a href="@block">Blocks</a> page and enable a SmartMenus block.', array('@documentation' => 'http://drupal.org/node/1125896', '@block' => 'structure/block')), 'warning');
+  }
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function smartmenus_drupal_requirements($phase) {
+  $requirements = array();
+  if ($phase == 'runtime') {
+    // Ensure translations do not break at install time.
+    $t = get_t();
+    // Ensure the SmartMenus library is present.
+    $requirements['smartmenus']['title'] = $t('SmartMenus library');
+
+    if (smartmenus_drupal_library_check()) {
+      $requirements['smartmenus']['value'] = $t('Installed');
+      $requirements['smartmenus']['severity'] = REQUIREMENT_OK;
+    }
+    else {
+      $requirements['smartmenus']['value'] = $t('Not installed');
+      $requirements['smartmenus']['severity'] = REQUIREMENT_ERROR;
+      $requirements['smartmenus']['description'] = $t('Please download the SmartMenus library from !link.', array('!link' => l($t('SmartMenus project homepage'), 'http://drupal.org/project/smartmenus_drupal')));
+    }
+
+    // Check the uploaded SmartMenus library version.
+/*
+    if (smartmenus_drupal_library_version() != '1.0') {
+      $requirements['smartmenus']['value'] = $t('Not supported');
+      $requirements['smartmenus']['severity'] = REQUIREMENT_ERROR;
+      $requirements['smartmenus']['description'] = $t('The SmartMenus library requires an update. You can find the update instructions on !link.', array('!link' => l($t('SmartMenus project homepage'), 'http://drupal.org/project/smartmenus_drupal')));
+    } */
+  }
+  return $requirements;
+}
+
+/**
+ * Verifies SmartMenus library is present.
+ */
+function smartmenus_drupal_library_check() {
+  if (function_exists('libraries_get_libraries')) {
+    $library = libraries_get_libraries();
+    if (isset($library['smartmenus'])) {
+      return TRUE;
+    }
+  }
+  elseif (file_exists('sites/all/libraries/smartmenus/jquery.smartmenus.js') || file_exists('profiles/' . drupal_get_profile() . '/libraries/smartmenus_drupal/jquery.smartmenus.js')) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * A function to check the SmartMenus library version.
+ */
+ /*/
+function smartmenus_drupal_library_version() {
+  // Ensure the Libraries API module is installed and working.
+  if (module_exists('libraries') && function_exists('libraries_get_path') && libraries_get_path('smartmenus') != '') {
+    $directory = libraries_get_path('smartmenus');
+  }
+  // Otherwise use the default directory.
+  elseif (file_exists('profiles/' . drupal_get_profile() . '/libraries/smartmenus')) {
+    $directory = 'profiles/' . drupal_get_profile() . '/libraries/smartmenus';
+  }
+  else {
+    $directory = 'sites/all/libraries/smartmenus';
+  }
+
+  // Get the library version.
+  if (file_exists($directory . '/VERSION')) {
+    $version = file_get_contents($directory . '/VERSION');
+    // Removing blank lines and white spaces.
+    $version = preg_replace("/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/", "\n", trim($version));
+    if (!empty($version)) {
+      return $version;
+    }
+    else {
+      return '';
+    }
+  }
+  else {
+    return '';
+  }
+}
+*/
+/**
+ * Implements hook_update_N().
+ */
+function smartmenus_drupal_update_7100() {
+}

@@ -1,0 +1,7 @@
+name = "SmartMenus Drupal"
+description = "jQuery SmartMenus plugin for your Drupal menus."
+package = User interface
+dependencies[] = block
+dependencies[] = menu
+configure = admin/config/user-interface/smartmenus_drupal
+core = 7.x
