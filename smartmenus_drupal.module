@@ -149,19 +149,26 @@ function smartmenus_drupal_get_path($library = 'smartmenus') {
 function smartmenus_drupal_styles($display = 'list', $style = NULL) {
   $output = '';
   $directory = smartmenus_drupal_get_path('smartmenus') . '/css';
-  $subdirectories = (file_exists($directory)) ? file_scan_directory($directory, '/*/', array('key' => 'name')) : '';
+  //here we get our css theme files
+  $css_files = array_filter(glob($directory . "/*/*.css"));
+  $file_array = '';
+  foreach($css_files as $css_file)
+  {
+    $file_array[basename($css_file, ".css" )] = $css_file;
+  }
+
   if ($display == 'list') {
     $output = array('none' => '- ' . t('None') . ' -');
-    if (is_array($subdirectories)) {
-      foreach ($subdirectories as $subdirectory) {
-        $output[$subdirectory->name] = drupal_ucfirst($subdirectory->name);
+    if (is_array($file_array)) {
+      foreach ($file_array as $file_name => $file_path) {
+        $output[$file_name] = drupal_ucfirst($file_name);
       }
     }
     natcasesort($output);
   }
   if ($display == 'path' && $style) {
-    if (isset($subdirectories[$style])) {
-      $output = array($subdirectories[$style]->uri => array('type' => 'file', 'weight' => 500));
+    if (isset($file_array[$style])) {
+      $output = array($file_array[$style] => array('type' => 'file', 'weight' => 500));
     }
     else {
       watchdog('page not found', 'Cannot find the required subdirectories for the SmartMenus \'%style\' style.', array('%style' => $style), WATCHDOG_WARNING);
