@@ -56,7 +56,7 @@ function smartmenus_drupal_block_info() {
   $number = variable_get('smartmenus_drupal_number', 4);
   for ($i = 1; $i <= $number; $i++) {
     $blocks[$i] = array(
-      'info' => variable_get('smartmenus_drupal_name_' . $i, 'SmartMenus ' . $i) . ' (SmartMenus)',
+      'info' => 'SmartMenus ' . $i . ' (SmartMenus)',
       'cache' => DRUPAL_NO_CACHE,
     );
   }
@@ -122,9 +122,6 @@ function smartmenus_drupal_block_configure($delta = 0) {
   return $form;
 }
 
-
-
-
 /**
  * Helper function to get library paths.
  */
@@ -144,17 +141,13 @@ function smartmenus_drupal_get_path($library = 'smartmenus') {
   return $directory;
 }
 
-
 /**
  * Implements hook_block_save().
  */
 function smartmenus_drupal_block_save($delta = 0, $edit = array()) {
-  // we copy the edit array directly... the $delta will be enough to diferentiate between the different blocks  
+  // we copy the edit array directly... the $delta will be enough to diferentiate between the different blocks
   variable_set('smartmenus_drupal_block_settings_' . $delta, $edit);
 }
-
-
-
 
 /**
  * Get a list of CSS files that can be used for styles.
@@ -190,3 +183,91 @@ function smartmenus_drupal_styles($display = 'list', $style = NULL) {
   }
   return $output;
 }
+
+/**
+ * Add require JavaScript and CSS files from the Smartmenus library.
+ */
+function smartmenus_drupal_library($type = NULL, $name = NULL, $action = 'add') {
+
+  $directory = smartmenus_drupal_get_path('smartmenus');
+  $sm_library = $directory . "/jquery.smartmenus.min.js\n";
+
+  $sm_library = preg_replace("/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/", "\n", trim($sm_library));
+
+    if ($action == 'check') {
+      switch ($type) {
+        case  'javascript':
+          switch ($name) {
+            case 'drupal_behavior':
+              $name = 'smartmenus_drupal.js';
+              $sm_library = array(drupal_get_path('module', 'smartmenus_drupal') . '/' . $name);
+              break;
+          }
+          $in_library = FALSE;
+            if (strpos($sm_library, $name) !== FALSE) {
+              $in_library = TRUE;
+              if (file_exists($sm_library)) {
+                return TRUE;
+              }
+              else {
+                watchdog('page not found', '%file', array('%file' => $directory . '/' . $name), WATCHDOG_ERROR);
+                return FALSE;
+              }
+            }
+
+          if (!$in_library) {
+            watchdog('page not found', '%path missing from SmartMenus library configuration, please add it immediately.', array('%path' => $directory . '/' . $name), WATCHDOG_WARNING, l(t('Superfish library configuration'), 'admin/config/user-interface/smartmenus_drupal'));
+            return FALSE;
+          }
+          break;
+
+        case 'CSS':
+          $directory .= '/css';
+              if (file_exists($directory . '/' . $name . '/' . $name . '.css')) {
+                return TRUE;
+              }
+              else {
+                $css_path = $directory . '/' . $name . '/' . $name . '.css';
+                watchdog('page not found', $css_path, WATCHDOG_WARNING);
+                return FALSE;
+              }
+          break;
+      } //end type switch
+    } // end check action if
+    if ($action == 'add') {
+      switch ($type) {
+        case 'javascript':
+          switch ($name) {
+            case 'drupal_behavior':
+              $output = array(
+                drupal_get_path('module', 'smartmenus_drupal') . '/smartmenus_drupal.js' =>
+                array('type' => 'file', 'weight' => 495),
+              );
+              return $output;
+
+            default:
+              if (file_exists($directory . '/jquery.smartmenus.min.js')) {
+
+                    $output = array($s => array('type' => 'file', 'weight' => 470));
+                    return $output;
+                  }
+
+                // If the required file did not exist in the library files list.
+                if (empty($output)) {
+                  watchdog('page not found', '%name cannot be found.', array('%name' => $name), WATCHDOG_WARNING);
+                }
+
+              else {
+                watchdog('page not found', '%directory/jquery.smartmenus.min.js', array('%directory' => $directory), WATCHDOG_ERROR);
+              }
+            }
+          break;
+
+        case 'CSS':
+          $directory .= '/css/';
+          $output = array($directory . $name . '/' . $name . '.css' => array('type' => 'file', 'weight' => 480));
+          return $output;
+          break;
+      } //ent type switch
+    } // end 'add' action if
+} //end smartmenus_drupal_library function
