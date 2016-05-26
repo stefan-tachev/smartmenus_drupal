@@ -222,15 +222,31 @@ function smartmenus_drupal_library($type = NULL, $name = NULL, $action = 'add') 
           break;
 
         case 'CSS':
-          $directory .= '/css';
-              if (file_exists($directory . '/' . $name . '/' . $name . '.css')) {
-                return TRUE;
-              }
-              else {
-                $css_path = $directory . '/' . $name . '/' . $name . '.css';
-                watchdog('page not found', $css_path, WATCHDOG_WARNING);
-                return FALSE;
-              }
+        $directory .= '/css';
+          switch ($name) {
+            case 'core-css':
+            if (file_exists($directory . '/sm-core-css.css')) {
+              return TRUE;
+            }
+            else {
+              $css_path = $directory . '/sm-core-css.css';
+              watchdog('page not found', $css_path, WATCHDOG_WARNING);
+              return FALSE;
+            }
+              break;
+
+            default:
+            if (file_exists($directory . '/' . $name . '/' . $name . '.css')) {
+              return TRUE;
+            }
+            else {
+              $css_path = $directory . '/' . $name . '/' . $name . '.css';
+              watchdog('page not found', $css_path, WATCHDOG_WARNING);
+              return FALSE;
+            }
+              break;
+          }
+
           break;
       } //end type switch
     } // end check action if
@@ -265,9 +281,38 @@ function smartmenus_drupal_library($type = NULL, $name = NULL, $action = 'add') 
 
         case 'CSS':
           $directory .= '/css/';
-          $output = array($directory . $name . '/' . $name . '.css' => array('type' => 'file', 'weight' => 480));
-          return $output;
+          switch ($name) {
+            case 'core-css':
+              $output = array($directory . 'sm-core-css.css' => array('type' => 'file', 'weight' => 480));              
+              return $output;
+              break;
+            default:
+              $output = array($directory . $name . '/' . $name . '.css' => array('type' => 'file', 'weight' => 480));
+              return $output;
+              break;
+          }
           break;
       } //ent type switch
     } // end 'add' action if
 } //end smartmenus_drupal_library function
+
+
+/**
+ * Implements hook_block_view().
+ */
+function smartmenus_drupal_block_view($delta = 0) {
+  global $language;
+  $block_css = $block_js = $sfoptions = $sfplugins = array();
+  $block_settings = variable_get('smartmenus_drupal_block_settings_' . $delta );
+  //add core css and js
+  if (smartmenus_drupal_library('CSS', 'core-css', 'check')) {
+    $block_css = array_merge($block_css, smartmenus_drupal_library('CSS', 'core-css', 'add'));
+    dpm($block_css);
+  }
+
+  $block['content']['#attached'] = array(
+    'css' => $block_css,
+    'js' => $block_js,
+  );
+return $block;
+} // end smartmenus_drupal_block_view function
