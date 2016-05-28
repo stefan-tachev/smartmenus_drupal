@@ -202,9 +202,14 @@ function smartmenus_drupal_library($type = NULL, $name = NULL, $action = 'add') 
               $name = 'smartmenus_drupal.js';
               $sm_library = array(drupal_get_path('module', 'smartmenus_drupal') . '/' . $name);
               break;
+            case 'core-js':
+              $name = 'jquery.smartmenus.min.js';
+
+              $sm_library = $directory . '/' . $name;
+              break;
           }
           $in_library = FALSE;
-            if (strpos($sm_library, $name) !== FALSE) {
+
               $in_library = TRUE;
               if (file_exists($sm_library)) {
                 return TRUE;
@@ -213,7 +218,7 @@ function smartmenus_drupal_library($type = NULL, $name = NULL, $action = 'add') 
                 watchdog('page not found', '%file', array('%file' => $directory . '/' . $name), WATCHDOG_ERROR);
                 return FALSE;
               }
-            }
+
 
           if (!$in_library) {
             watchdog('page not found', '%path missing from SmartMenus library configuration, please add it immediately.', array('%path' => $directory . '/' . $name), WATCHDOG_WARNING, l(t('Superfish library configuration'), 'admin/config/user-interface/smartmenus_drupal'));
@@ -260,19 +265,21 @@ function smartmenus_drupal_library($type = NULL, $name = NULL, $action = 'add') 
                 array('type' => 'file', 'weight' => 495),
               );
               return $output;
-
+            case 'core-js':
+              $name = 'jquery.smartmenus.min.js';
+              if (file_exists($directory . $name)) {
+                  $output = array($name => array('type' => 'file', 'weight' => 470));
+                  return $output;
+                }
             default:
               if (file_exists($directory . '/jquery.smartmenus.min.js')) {
-
-                    $output = array($s => array('type' => 'file', 'weight' => 470));
+                    $output = array($name => array('type' => 'file', 'weight' => 470));
                     return $output;
                   }
-
                 // If the required file did not exist in the library files list.
                 if (empty($output)) {
                   watchdog('page not found', '%name cannot be found.', array('%name' => $name), WATCHDOG_WARNING);
                 }
-
               else {
                 watchdog('page not found', '%directory/jquery.smartmenus.min.js', array('%directory' => $directory), WATCHDOG_ERROR);
               }
@@ -283,7 +290,7 @@ function smartmenus_drupal_library($type = NULL, $name = NULL, $action = 'add') 
           $directory .= '/css/';
           switch ($name) {
             case 'core-css':
-              $output = array($directory . 'sm-core-css.css' => array('type' => 'file', 'weight' => 480));              
+              $output = array($directory . 'sm-core-css.css' => array('type' => 'file', 'weight' => 480));
               return $output;
               break;
             default:
@@ -309,7 +316,10 @@ function smartmenus_drupal_block_view($delta = 0) {
     $block_css = array_merge($block_css, smartmenus_drupal_library('CSS', 'core-css', 'add'));
     dpm($block_css);
   }
-
+  if (smartmenus_drupal_library('javascript', 'core-js', 'check')) {
+    $block_js = array_merge($block_js, smartmenus_drupal_library('javascript', 'core-js', 'add'));
+    dpm($block_js);
+  }
   $block['content']['#attached'] = array(
     'css' => $block_css,
     'js' => $block_js,
