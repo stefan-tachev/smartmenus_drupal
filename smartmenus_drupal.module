@@ -314,12 +314,16 @@ function smartmenus_drupal_block_view($delta = 0) {
   //add core css and js
   if (smartmenus_drupal_library('CSS', 'core-css', 'check')) {
     $block_css = array_merge($block_css, smartmenus_drupal_library('CSS', 'core-css', 'add'));
-    dpm($block_css);
   }
   if (smartmenus_drupal_library('javascript', 'core-js', 'check')) {
     $block_js = array_merge($block_js, smartmenus_drupal_library('javascript', 'core-js', 'add'));
-    dpm($block_js);
   }
+  //add smartmenus-theme css
+  if (smartmenus_drupal_library('CSS', $block_settings['menu_style'], 'check')) {
+    $block_css = array_merge($block_css, smartmenus_drupal_library('CSS', $block_settings['menu_style'], 'add'));
+    dpm($block_css);
+  }
+
   $block['content']['#attached'] = array(
     'css' => $block_css,
     'js' => $block_js,
